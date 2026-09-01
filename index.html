@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#000000" />
+    <title>BC Altstetten · Basketball Club Altstetten</title>
+    <meta
+      name="description"
+      content="BC Altstetten – Basketball Club Altstetten, Zürich. Teams, Trainingszeiten, Spielplan und Kontakt."
+    />
+    <link rel="icon" type="image/svg+xml" href="images/bca-ball-icon.svg" />
+    <link rel="alternate icon" type="image/png" href="images/favicon.png" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="#top">
+        <img src="images/bca-ball-icon.svg" alt="" width="28" height="28" />
+        <span>BC Altstetten</span>
+      </a>
+      <nav class="nav">
+        <a href="#teams">Teams</a>
+        <a href="#kalender">Kalender</a>
+        <a href="#kontakt">Kontakt</a>
+        <a class="nav-linkup" href="/linkup/" data-linkup>LinkUp</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <img class="hero-logo" src="images/bca-logo-hero.svg" alt="Logo BC Altstetten" width="530" height="512" />
+        <h1>BC Altstetten</h1>
+        <p class="tagline">Basketball Club Altstetten · Zürich</p>
+        <div class="hero-actions">
+          <a class="btn" href="#teams">Teams &amp; Trainings</a>
+          <a class="btn btn-ghost" href="#kalender">Kalender</a>
+        </div>
+      </section>
+
+      <section id="teams" class="section">
+        <div class="section-head">
+          <h2>Teams</h2>
+          <p class="lead">Unsere Teams, ihre Ligen und Trainingszeiten. Neue Spielerinnen und Spieler sind jederzeit willkommen – komm einfach im Training vorbei.</p>
+        </div>
+        <div id="teams-list" class="teams">
+          <p class="loading">Lade Teams…</p>
+        </div>
+      </section>
+
+      <section id="kalender" class="section">
+        <div class="section-head">
+          <h2>Kalender</h2>
+          <p class="lead">Alle Trainings und Spiele auf einen Blick. Tag antippen für Details.</p>
+        </div>
+        <div id="legend" class="legend"></div>
+        <div id="cal" class="cal"></div>
+        <div id="day-detail" class="day-detail"></div>
+      </section>
+
+      <section id="kontakt" class="section">
+        <div class="section-head">
+          <h2>Kontakt</h2>
+        </div>
+        <div class="contact">
+          <a class="contact-card" href="mailto:bcaltstetten@gmail.com">
+            <span class="contact-label">E-Mail</span>
+            <span class="contact-value">bcaltstetten@gmail.com</span>
+          </a>
+          <a class="contact-card" href="https://instagram.com/bcaltstetten/" target="_blank" rel="noopener">
+            <span class="contact-label">Instagram</span>
+            <span class="contact-value">@bcaltstetten</span>
+          </a>
+          <a class="contact-card contact-linkup" href="/linkup/" data-linkup>
+            <span class="contact-label">Für Trainer &amp; gegnerische Teams</span>
+            <span class="contact-value">LinkUp Spielplanung →</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <img src="images/bca-ball-icon.svg" alt="" width="20" height="20" />
+      <span>© <span id="year"></span> BC Altstetten</span>
+      <span class="dot">·</span>
+      <a href="mailto:bcaltstetten@gmail.com">bcaltstetten@gmail.com</a>
+      <span class="dot">·</span>
+      <a href="https://instagram.com/bcaltstetten/" target="_blank" rel="noopener">Instagram</a>
+      <span class="dot">·</span>
+      <a href="/linkup/" data-linkup>LinkUp</a>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/demo-data.js"></script>
+    <script src="js/schedule.js"></script>
+  </body>
+</html>

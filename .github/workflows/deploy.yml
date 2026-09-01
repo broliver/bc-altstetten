@@ -1,0 +1,78 @@
+name: Deploy website + LinkUp
+
+# Builds the static club website and the LinkUp app (from the LinkUp repo,
+# served under /linkup/) into one GitHub Pages deployment at bc-altstetten.ch.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # weekly rebuild so LinkUp changes reach /linkup/ without a website commit
+    - cron: '17 3 * * 1'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out LinkUp
+        uses: actions/checkout@v4
+        with:
+          repository: broliver/LinkUp
+          path: linkup-src
+          # personal access token with read access to the (private) LinkUp repo
+          token: ${{ secrets.LINKUP_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: linkup-src/package-lock.json
+
+      - name: Build LinkUp for /linkup/
+        working-directory: linkup-src
+        run: |
+          npm ci
+          npm run build -- --base "/linkup/"
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Assemble site
+        run: |
+          mkdir -p site
+          cp -r index.html css js images site/
+          cp CNAME .nojekyll site/ 2>/dev/null || true
+          cp -r linkup-src/dist site/linkup
+          # runtime config of the website (public anon key)
+          cat > site/js/config.js <<EOF
+          window.BCA_CONFIG = {
+            SUPABASE_URL: '${{ secrets.SUPABASE_URL }}',
+            SUPABASE_ANON_KEY: '${{ secrets.SUPABASE_ANON_KEY }}',
+            LINKUP_URL: '/linkup/',
+          }
+          EOF
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
