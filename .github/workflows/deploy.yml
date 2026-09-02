@@ -6,8 +6,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # every push to LinkUp's main sends this event (see LinkUp's deploy workflow)
+  repository_dispatch:
+    types: [linkup-updated]
   schedule:
-    # weekly rebuild so LinkUp changes reach /linkup/ without a website commit
+    # weekly safety-net rebuild in case a LinkUp trigger was missed
     - cron: '17 3 * * 1'
 
 permissions:
