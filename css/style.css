@@ -78,7 +78,7 @@ img { max-width: 100%; height: auto; display: block; }
   margin: 0 auto;
 }
 .hero-logo {
-  width: min(62vw, 420px);
+  width: min(42vw, 260px);
   margin: 0 auto 1.5rem;
   filter: drop-shadow(0 0 40px rgba(73, 173, 51, 0.25));
 }

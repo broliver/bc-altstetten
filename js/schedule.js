@@ -307,7 +307,8 @@
   /* ---------- boot ---------- */
 
   async function main() {
-    $('#year').textContent = String(new Date().getFullYear())
+    const yearEl = $('#year')
+    if (yearEl) yearEl.textContent = String(new Date().getFullYear())
     if (cfg.LINKUP_URL) document.querySelectorAll('[data-linkup]').forEach((a) => (a.href = cfg.LINKUP_URL))
     try {
       const data = await loadData()
