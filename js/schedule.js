@@ -16,6 +16,8 @@
   // (team dashboard → colour). Green first, pink second, then lighter variants.
   const COLORS = ['#49ad33', '#ff4fa3', '#ffffff', '#a6e08a', '#ffa3d0', '#7fd0ff', '#ffd166', '#c39bff']
   const HEX = /^#[0-9a-f]{6}$/i
+  // club-level events (no team) are always white
+  const CLUB_COLOR = '#ffffff'
 
   const pad = (n) => String(n).padStart(2, '0')
   const isoDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -35,6 +37,12 @@
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`
   }
   const dayOf = (ts) => isoDay(new Date(ts))
+  /** "18:00–20:00" on one day, "Fr 16.10. 17:00 – So 18.10. 15:00" across days */
+  const eventSpan = (ev) =>
+    ev.start_date === ev.end_date
+      ? `${ev.start}–${ev.end}`
+      : `${fmtShort(ev.start_date)} ${ev.start} – ${fmtShort(ev.end_date)} ${ev.end}`
+  const emptyDay = () => ({ practices: [], games: [], closures: [], events: [] })
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
   const today = isoDay(new Date())
 
@@ -60,9 +68,12 @@
 
   /**
    * Expand the raw schedule into a per-day index:
-   *   byDay[iso] = { practices: [...], games: [...], closures: [...] }
+   *   byDay[iso] = { practices: [...], games: [...], closures: [...], events: [...] }
    * A practice does not take place if it was cancelled, its gym is closed,
-   * or the team has a game that day (same rules as in LinkUp).
+   * or the team has a game that day (same rules as in LinkUp). Events
+   * (tournaments, camps, club events) arrive from LinkUp as dated
+   * occurrences — recurrences already expanded, closed gyms already
+   * removed — and are spread over every day they span.
    */
   function buildModel(data) {
     const gyms = new Map((data.gyms || []).map((g) => [g.id, g]))
@@ -85,9 +96,11 @@
       ...t,
       color: typeof t.color === 'string' && HEX.test(t.color) ? t.color : COLORS[i % COLORS.length],
     }))
+    // pseudo-owner of club events (same shape as a team for colour/name)
+    const club = { id: 'club', name: data.club_name || 'Club', color: CLUB_COLOR, club: true }
     const byDay = new Map()
     const at = (day) => {
-      if (!byDay.has(day)) byDay.set(day, { practices: [], games: [], closures: [] })
+      if (!byDay.has(day)) byDay.set(day, emptyDay())
       return byDay.get(day)
     }
 
@@ -138,11 +151,33 @@
         for (let d = c.start_date; d <= c.end_date; d = addDays(d, 1)) at(d).closures.push({ gym: g.name, reason: c.reason })
       }
     }
+
+    // events: one entry per day they span; first/last mark the edges of multi-day events
+    const addEvents = (owner, list) => {
+      for (const ev of list || []) {
+        if (!ev.start_date) continue
+        const end = ev.end_date && ev.end_date >= ev.start_date ? ev.end_date : ev.start_date
+        const occ = {
+          owner,
+          name: ev.name || 'Anlass',
+          start_date: ev.start_date,
+          end_date: end,
+          start: ev.start_time || '',
+          end: ev.end_time || '',
+          where: ev.gym_id ? gymName(ev.gym_id) : ev.place || '',
+        }
+        for (let d = ev.start_date; d <= end; d = addDays(d, 1)) at(d).events.push({ ...occ, first: d === ev.start_date, last: d === end })
+      }
+    }
+    for (const t of teams) addEvents(t, t.events)
+    addEvents(club, data.club_events)
+
     for (const e of byDay.values()) {
       e.practices.sort((a, b) => a.start.localeCompare(b.start) || a.team.name.localeCompare(b.team.name))
       e.games.sort((a, b) => a.ts.localeCompare(b.ts))
+      e.events.sort((a, b) => (a.first ? a.start : '').localeCompare(b.first ? b.start : '') || a.name.localeCompare(b.name))
     }
-    return { teams, gyms, gymName, byDay }
+    return { teams, gyms, gymName, byDay, club, clubEvents: data.club_events || [] }
   }
 
   /* ---------- export (CSV / ICS) ---------- */
@@ -268,6 +303,22 @@
           .sort((a, b) => ((a.weekday + 6) % 7) - ((b.weekday + 6) % 7) || a.start_time.localeCompare(b.start_time))
         const games = [...(t.games || [])].sort((a, b) => a.starts_at.localeCompare(b.starts_at))
         const next = games.find((g) => new Date(g.starts_at).getTime() > Date.now())
+        // upcoming events; a recurring event is shown once ("Montags 18:00–19:00 · wöchentlich")
+        const seen = new Set()
+        const events = (t.events || [])
+          .filter((e) => (e.end_date || e.start_date) >= today)
+          .filter((e) => (e.recurrence && e.recurrence !== 'none' ? !seen.has(e.id) && seen.add(e.id) : true))
+          .slice(0, 6)
+        const eventRows = events
+          .map(
+            (e) => `<li class="stack">
+              <span class="when">${esc(eventLine(e))}</span>
+              <span>${esc(e.name)}</span>
+              ${e.recurrence && e.recurrence !== 'none' ? `<span class="chip">${e.recurrence === 'biweekly' ? 'alle 2 Wochen' : 'wöchentlich'}</span>` : ''}
+              ${e.gym_id || e.place ? `<span class="where">${esc(e.gym_id ? model.gymName(e.gym_id) : e.place)}</span>` : ''}
+            </li>`,
+          )
+          .join('')
         const practiceRows =
           practices.length === 0
             ? '<li class="empty">Keine Trainingszeiten erfasst.</li>'
@@ -304,6 +355,7 @@
             <div class="label">Training</div>
             <ul class="rows">${practiceRows}</ul>
           </div>
+          ${events.length ? `<div><div class="label">Anlässe</div><ul class="rows">${eventRows}</ul></div>` : ''}
           <details class="games">
             <summary>
               <span>Spiele</span><span class="count">(${games.length})</span>
@@ -332,6 +384,33 @@
     )
   }
 
+  /** "Do 01.10. 18:00–20:00" or "Fr 16.10. – So 18.10." for a raw event occurrence */
+  function eventLine(e) {
+    const end = e.end_date && e.end_date >= e.start_date ? e.end_date : e.start_date
+    if (e.recurrence && e.recurrence !== 'none' && end === e.start_date)
+      return `${WD_LONG[fromIso(e.start_date).getDay()]}s ${e.start_time}–${e.end_time}`
+    if (end === e.start_date) return `${fmtShort(e.start_date)} ${e.start_time}–${e.end_time}`
+    return `${fmtShort(e.start_date)} – ${fmtShort(end)}`
+  }
+
+  /* ---------- club events (upcoming, above the calendar) ---------- */
+
+  function renderClubEvents(model) {
+    const root = $('#club-events')
+    if (!root) return
+    const upcoming = model.clubEvents.filter((e) => (e.end_date || e.start_date) >= today).slice(0, 6)
+    if (upcoming.length === 0) {
+      root.innerHTML = ''
+      return
+    }
+    root.innerHTML = `<div class="label">Club-Anlässe</div><ul class="rows">${upcoming
+      .map(
+        (e) => `<li class="stack"><span class="when">${esc(eventLine(e))}</span> <span>${esc(e.name)}</span>
+          ${e.gym_id || e.place ? `<span class="where">${esc(e.gym_id ? model.gymName(e.gym_id) : e.place)}</span>` : ''}</li>`,
+      )
+      .join('')}</ul>`
+  }
+
   /* ---------- calendar ---------- */
 
   const calState = { year: 0, month: 0, selected: today }
@@ -339,6 +418,7 @@
   function renderLegend(model) {
     $('#legend').innerHTML =
       model.teams.map((t) => `<span><i class="swatch" style="--c:${t.color}"></i>${esc(t.name)}</span>`).join('') +
+      `<span><i class="swatch" style="--c:${CLUB_COLOR}"></i>Club-Anlass</span>` +
       '<span><i class="swatch game"></i>Spiel</span>' +
       '<span><i class="swatch striped"></i>Halle geschlossen</span>' +
       '<span><s>Training</s> fällt aus</span>'
@@ -353,14 +433,22 @@
     for (let i = 0; i < firstDow; i++) cells.push('<div class="cal-cell empty"></div>')
     for (let d = 1; d <= days; d++) {
       const iso = isoDay(new Date(year, month, d))
-      const e = model.byDay.get(iso) || { practices: [], games: [], closures: [] }
+      const e = model.byDay.get(iso) || emptyDay()
       const items = [
         ...e.games.map((g) => ({ ts: fmtTime(g.ts), text: `${fmtTime(g.ts)} 🏀 ${g.team.name} – ${g.opponent}`, color: g.team.color, cls: 'game' })),
         ...e.practices.map((p) => ({ ts: p.start, text: `${p.start} ${p.team.name}`, color: p.team.color, cls: p.status === 'ok' ? '' : 'off' })),
+        // multi-day events continue with "↳" and sort to the top of the following days
+        ...e.events.map((ev) => ({
+          ts: ev.first ? ev.start : '',
+          text: ev.first ? `${ev.start} ${ev.name}` : `↳ ${ev.name}`,
+          title: `${ev.owner.name}: ${ev.name} · ${eventSpan(ev)}${ev.where ? ` · ${ev.where}` : ''}`,
+          color: ev.owner.color,
+          cls: 'event',
+        })),
       ].sort((a, b) => a.ts.localeCompare(b.ts))
       const max = 4
       const shown = items.length > max ? items.slice(0, max - 1) : items
-      const chips = shown.map((it) => `<span class="ev ${it.cls}" style="--c:${it.color}" title="${esc(it.text)}">${esc(it.text)}</span>`).join('')
+      const chips = shown.map((it) => `<span class="ev ${it.cls}" style="--c:${it.color}" title="${esc(it.title || it.text)}">${esc(it.text)}</span>`).join('')
       const more = items.length > max ? `<span class="ev more">+${items.length - shown.length} weitere</span>` : ''
       const dots = items.map((it) => `<i class="${it.cls}" style="--c:${it.color}"></i>`).join('')
       const cls = ['cal-cell', iso === today ? 'today' : '', iso === selected ? 'selected' : '', e.closures.length ? 'closed' : ''].filter(Boolean).join(' ')
@@ -404,9 +492,17 @@
 
   function renderDetail(model) {
     const day = calState.selected
-    const e = model.byDay.get(day) || { practices: [], games: [], closures: [] }
+    const e = model.byDay.get(day) || emptyDay()
     const root = $('#day-detail')
     const groups = []
+    if (e.events.length)
+      groups.push(`<div class="group"><div class="label">Anlässe</div><ul class="rows">${e.events
+        .map(
+          (ev) => `<li style="--c:${ev.owner.color}"><span class="swatch"></span><span class="when">${esc(eventSpan(ev))}</span>
+            <span class="team-name">${esc(ev.name)}</span><span class="owner">${esc(ev.owner.name)}</span>
+            ${ev.where ? `<span class="where">${esc(ev.where)}</span>` : ''}</li>`,
+        )
+        .join('')}</ul></div>`)
     if (e.games.length)
       groups.push(`<div class="group"><div class="label">Spiele</div><ul class="rows">${e.games
         .map(
@@ -429,7 +525,7 @@
         .map((c) => `<li><span>${esc(c.gym)}</span>${c.reason ? `<span class="where">${esc(c.reason)}</span>` : ''}</li>`)
         .join('')}</ul></div>`)
     root.innerHTML = `<h3>${WD_LONG[fromIso(day).getDay()]}, ${fmtDay(day)}${day === today ? ' · heute' : ''}</h3>${
-      groups.length ? groups.join('') : '<p class="empty">Keine Trainings oder Spiele.</p>'
+      groups.length ? groups.join('') : '<p class="empty">Keine Trainings, Spiele oder Anlässe.</p>'
     }`
   }
 
@@ -446,6 +542,7 @@
       calState.year = now.getFullYear()
       calState.month = now.getMonth()
       renderTeams(model)
+      renderClubEvents(model)
       renderLegend(model)
       renderCalendar(model)
       renderDetail(model)

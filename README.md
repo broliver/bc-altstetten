@@ -5,8 +5,11 @@ The [LinkUp](https://github.com/broliver/LinkUp) club-management app is deployed
 under **bc-altstetten.ch/linkup/**.
 
 - Plain HTML + CSS + JS
-- Teams, leagues, practice times, games and the calendar are read live from LinkUp's public
-  Supabase function `get_public_schedule()` (read-only, no contacts or player data).
+- Teams, leagues, practice times, games, events and the calendar are read live from LinkUp's
+  public Supabase function `get_public_schedule()` (read-only, no contacts or player data).
+- Events (tournaments, camps, club events) come per team in `events` and club-wide in
+  `club_events`, already expanded into dated occurrences. Team events are drawn in the team
+  colour, club events in white; multi-day events span every day in the calendar.
 
 ## Local preview
 

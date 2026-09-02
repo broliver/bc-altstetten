@@ -19,11 +19,20 @@ window.BCA_DEMO = function () {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).toISOString()
   }
   const seasonYear = today.getMonth() >= 7 ? today.getFullYear() : today.getFullYear() - 1
+  // events arrive as dated occurrences (recurrences expanded by LinkUp, closed gyms removed)
+  const weekly = (name, wd, start, end, gymId, weeks) =>
+    Array.from({ length: weeks }, (_, i) => nextWeekday(wd, i))
+      .filter((d) => !(iso(d) >= iso(shift(21)) && iso(d) <= iso(shift(34)) && gymId === 'g1'))
+      .map((d) => ({ id: `e-${name}`, name, start_date: iso(d), end_date: iso(d), start_time: start, end_time: end, gym_id: gymId, place: null, recurrence: 'weekly' }))
 
   return {
     club_name: 'BC Altstetten',
     season_start: `${seasonYear}-08-01`,
     generated_at: today.toISOString(),
+    club_events: [
+      { id: 'e-lager', name: 'Clublager', start_date: iso(nextWeekday(5, 5)), end_date: iso(nextWeekday(0, 5)), start_time: '17:00', end_time: '15:00', gym_id: null, place: 'Sportzentrum Tenero', recurrence: 'none' },
+      { id: 'e-gv', name: 'Generalversammlung', start_date: iso(nextWeekday(3, 8)), end_date: iso(nextWeekday(3, 8)), start_time: '19:30', end_time: '21:30', gym_id: null, place: 'Restaurant Lindenhof', recurrence: 'none' },
+    ],
     gyms: [
       {
         id: 'g1', name: 'Sporthalle Altstetten', street: 'Badenerstrasse 700', zip: '8048', city: 'Zürich',
@@ -45,6 +54,10 @@ window.BCA_DEMO = function () {
           { kind: 'home', starts_at: ts(nextWeekday(6, 1), '17:30'), opponent: 'BC Oberwil', gym_id: 'g1', venue: null },
           { kind: 'away', starts_at: ts(nextWeekday(0, 3), '16:00'), opponent: 'TV Muttenz', gym_id: null, venue: 'Sporthalle Muttenz' },
         ],
+        events: [
+          { id: 'e-turnier', name: 'Vorbereitungsturnier', start_date: iso(nextWeekday(6, 3)), end_date: iso(nextWeekday(6, 3)), start_time: '09:00', end_time: '18:00', gym_id: 'g2', place: null, recurrence: 'none' },
+          ...weekly('Konditionstraining', 1, '18:00', '19:00', 'g1', 12),
+        ],
       },
       {
         id: 't2', name: 'Damen 1', category: '1. Liga', home_gym_id: 'g1', color: '#ff4fa3',
@@ -58,6 +71,7 @@ window.BCA_DEMO = function () {
           { kind: 'home', starts_at: ts(nextWeekday(0, 1), '13:00'), opponent: 'BC Allschwil', gym_id: 'g1', venue: null },
           { kind: 'away', starts_at: ts(nextWeekday(6, 4), '18:00'), opponent: 'Basket Zürich', gym_id: null, venue: 'Saalsporthalle' },
         ],
+        events: [],
       },
       {
         id: 't3', name: 'U16', category: 'Jugend', home_gym_id: 'g2', color: '#7fd0ff',
@@ -68,6 +82,9 @@ window.BCA_DEMO = function () {
         ],
         cancellations: [],
         games: [{ kind: 'home', starts_at: ts(nextWeekday(6, 2), '11:00'), opponent: 'Küsnacht Cats', gym_id: 'g2', venue: null }],
+        events: [
+          { id: 'e-camp', name: 'Jugendcamp', start_date: iso(nextWeekday(1, 2)), end_date: iso(nextWeekday(3, 2)), start_time: '09:00', end_time: '16:00', gym_id: 'g2', place: null, recurrence: 'none' },
+        ],
       },
     ],
   }

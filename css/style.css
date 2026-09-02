@@ -250,6 +250,8 @@ details.games .export button:hover { border-color: var(--green); color: var(--gr
 }
 .ev.game { background: rgba(255, 255, 255, 0.14); font-weight: 600; }
 .ev.off { text-decoration: line-through; color: var(--muted); }
+/* events (tournaments, camps, club events): tinted with the owner's colour */
+.ev.event { background: color-mix(in srgb, var(--c, var(--green)) 18%, transparent); }
 .ev.more { border-left-color: transparent; color: var(--muted); background: transparent; }
 .dots { display: none; gap: 3px; flex-wrap: wrap; margin-top: 2px; }
 .dots i { width: 7px; height: 7px; border-radius: 999px; background: var(--c, var(--green)); display: block; }
@@ -261,6 +263,9 @@ details.games .export button:hover { border-color: var(--green); color: var(--gr
 .day-detail .group { margin-bottom: 0.9rem; }
 .day-detail .group:last-child { margin-bottom: 0; }
 .day-detail .rows li .team-name { font-weight: 600; }
+.day-detail .rows li .owner { color: var(--muted); font-size: 0.85rem; }
+.club-events { margin-bottom: 1rem; padding: 0.8rem 1rem; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-2); }
+.club-events:empty { display: none; }
 .day-detail .off { color: var(--muted); text-decoration: line-through; }
 .day-detail .why { color: var(--pink); font-size: 0.85rem; text-decoration: none; }
 
