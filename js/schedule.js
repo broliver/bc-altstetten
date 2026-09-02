@@ -145,6 +145,114 @@
     return { teams, gyms, gymName, byDay }
   }
 
+  /* ---------- export (CSV / ICS) ---------- */
+
+  const GAME_HOURS = 2 // games have no end time in LinkUp; assume 2 h for calendar entries
+
+  const slug = (s) =>
+    String(s)
+      .toLowerCase()
+      .replace(/ä/g, 'ae')
+      .replace(/ö/g, 'oe')
+      .replace(/ü/g, 'ue')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'team'
+
+  // One flat row per game, shared by both formats.
+  function exportRows(team, model) {
+    return [...(team.games || [])]
+      .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+      .map((g) => {
+        const gym = g.kind === 'home' && g.gym_id ? model.gyms.get(g.gym_id) : null
+        const where = gym ? gym.name : g.venue || ''
+        const address = gym ? [gym.street, [gym.zip, gym.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') : ''
+        return { g, where, address, kind: g.kind === 'home' ? 'Heim' : 'Auswärts', opponent: g.opponent || '?' }
+      })
+  }
+
+  function gamesToCsv(team, model) {
+    const cell = (v) => {
+      const s = String(v ?? '')
+      return /[";\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    const lines = [['Datum', 'Wochentag', 'Zeit', 'Team', 'Heim/Auswärts', 'Gegner', 'Ort', 'Adresse']]
+    for (const r of exportRows(team, model)) {
+      const day = dayOf(r.g.starts_at)
+      lines.push([fmtDay(day), WD_LONG[fromIso(day).getDay()], fmtTime(r.g.starts_at), team.name, r.kind, r.opponent, r.where, r.address])
+    }
+    // BOM so Excel reads the umlauts; semicolons match the Swiss/German list separator.
+    return '\ufeff' + lines.map((l) => l.map(cell).join(';')).join('\r\n') + '\r\n'
+  }
+
+  function gamesToIcs(team, model) {
+    const icsText = (s) => String(s ?? '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
+    const icsDate = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+    // RFC 5545: lines are at most 75 octets; continuation lines start with a space.
+    const enc = new TextEncoder()
+    const fold = (line) => {
+      const out = []
+      let cur = ''
+      let bytes = 0
+      for (const ch of line) {
+        const n = enc.encode(ch).length
+        if (bytes + n > (out.length ? 74 : 75)) {
+          out.push(cur)
+          cur = ''
+          bytes = 0
+        }
+        cur += ch
+        bytes += n
+      }
+      out.push(cur)
+      return out.join('\r\n ')
+    }
+    const stamp = icsDate(new Date())
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//BC Altstetten//Spielplan//DE',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      `X-WR-CALNAME:${icsText(`BC Altstetten ${team.name} – Spiele`)}`,
+    ]
+    for (const r of exportRows(team, model)) {
+      const start = new Date(r.g.starts_at)
+      const end = new Date(start.getTime() + GAME_HOURS * 3600 * 1000)
+      const location = [r.where, r.address].filter(Boolean).join(', ')
+      const summary = r.g.kind === 'home' ? `🏀 ${team.name} vs ${r.opponent}` : `🏀 ${r.opponent} vs ${team.name}`
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:${slug(`${team.id}-${r.g.starts_at}-${r.opponent}`)}@bc-altstetten.ch`,
+        `DTSTAMP:${stamp}`,
+        `DTSTART:${icsDate(start)}`,
+        `DTEND:${icsDate(end)}`,
+        `SUMMARY:${icsText(summary)}`,
+        location ? `LOCATION:${icsText(location)}` : null,
+        `DESCRIPTION:${icsText(`${r.kind}spiel ${team.name}${team.category ? ` (${team.category})` : ''} gegen ${r.opponent}`)}`,
+        'END:VEVENT',
+      )
+    }
+    lines.push('END:VCALENDAR')
+    return lines.filter(Boolean).map(fold).join('\r\n') + '\r\n'
+  }
+
+  function download(filename, content, mime) {
+    const url = URL.createObjectURL(new Blob([content], { type: mime }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  function exportGames(team, model, format) {
+    const base = `spiele-${slug(team.name)}`
+    if (format === 'csv') download(`${base}.csv`, gamesToCsv(team, model), 'text/csv;charset=utf-8')
+    else download(`${base}.ics`, gamesToIcs(team, model), 'text/calendar;charset=utf-8')
+  }
+
   /* ---------- teams ---------- */
 
   function renderTeams(model) {
@@ -201,11 +309,27 @@
               <span>Spiele</span><span class="count">(${games.length})</span>
               ${next ? `<span class="next">nächstes: ${fmtShort(dayOf(next.starts_at))} ${fmtTime(next.starts_at)}</span>` : ''}
             </summary>
+            ${
+              games.length
+                ? `<div class="export">
+                    <span>Herunterladen:</span>
+                    <button type="button" data-export="csv" data-team="${esc(t.id)}" title="Als Tabelle (CSV) speichern">CSV</button>
+                    <button type="button" data-export="ics" data-team="${esc(t.id)}" title="In den Kalender importieren (iCalendar)">ICS (Kalender)</button>
+                  </div>`
+                : ''
+            }
             <ul class="rows">${gameRows}</ul>
           </details>
         </article>`
       })
       .join('')
+
+    root.querySelectorAll('[data-export]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const team = model.teams.find((t) => String(t.id) === b.dataset.team)
+        if (team) exportGames(team, model, b.dataset.export)
+      }),
+    )
   }
 
   /* ---------- calendar ---------- */
