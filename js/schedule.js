@@ -12,8 +12,10 @@
   const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
   const WD_LONG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
   const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
-  // team colours: green first, pink second, then lighter variants
+  // Fallback team colours for teams that have not picked one in LinkUp
+  // (team dashboard → colour). Green first, pink second, then lighter variants.
   const COLORS = ['#49ad33', '#ff4fa3', '#ffffff', '#a6e08a', '#ffa3d0', '#7fd0ff', '#ffd166', '#c39bff']
+  const HEX = /^#[0-9a-f]{6}$/i
 
   const pad = (n) => String(n).padStart(2, '0')
   const isoDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -79,7 +81,10 @@
       return c ? c.reason : null
     }
 
-    const teams = (data.teams || []).map((t, i) => ({ ...t, color: COLORS[i % COLORS.length] }))
+    const teams = (data.teams || []).map((t, i) => ({
+      ...t,
+      color: typeof t.color === 'string' && HEX.test(t.color) ? t.color : COLORS[i % COLORS.length],
+    }))
     const byDay = new Map()
     const at = (day) => {
       if (!byDay.has(day)) byDay.set(day, { practices: [], games: [], closures: [] })

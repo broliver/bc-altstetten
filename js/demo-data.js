@@ -33,7 +33,7 @@ window.BCA_DEMO = function () {
     ],
     teams: [
       {
-        id: 't1', name: 'Herren 1', category: '2. Liga', home_gym_id: 'g1',
+        id: 't1', name: 'Herren 1', category: '2. Liga', home_gym_id: 'g1', color: '#49ad33',
         season_start: `${seasonYear}-08-01`, season_end: `${seasonYear + 1}-06-30`,
         practice_times: [
           { id: 'p1', weekday: 2, start_time: '20:15', end_time: '21:45', gym_id: 'g1', valid_from: null, valid_to: null },
@@ -47,7 +47,7 @@ window.BCA_DEMO = function () {
         ],
       },
       {
-        id: 't2', name: 'Damen 1', category: '1. Liga', home_gym_id: 'g1',
+        id: 't2', name: 'Damen 1', category: '1. Liga', home_gym_id: 'g1', color: '#ff4fa3',
         season_start: `${seasonYear}-08-01`, season_end: `${seasonYear + 1}-06-30`,
         practice_times: [
           { id: 'p3', weekday: 1, start_time: '19:00', end_time: '20:30', gym_id: 'g1', valid_from: null, valid_to: null },
@@ -60,7 +60,7 @@ window.BCA_DEMO = function () {
         ],
       },
       {
-        id: 't3', name: 'U16', category: 'Jugend', home_gym_id: 'g2',
+        id: 't3', name: 'U16', category: 'Jugend', home_gym_id: 'g2', color: '#7fd0ff',
         season_start: `${seasonYear}-08-01`, season_end: `${seasonYear + 1}-06-30`,
         practice_times: [
           { id: 'p5', weekday: 2, start_time: '18:30', end_time: '20:00', gym_id: 'g1', valid_from: null, valid_to: null },
