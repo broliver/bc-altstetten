@@ -104,12 +104,25 @@
       return byDay.get(day)
     }
 
-    // window shown in the calendar: 2 months back … end of the latest season
-    let from = addDays(today.slice(0, 8) + '01', -62)
+    // practice period of a team: own dates, else the club's practice period,
+    // else Aug 1 – Jun 30 (same fallback chain as LinkUp). Older exports call
+    // the team fields season_start / season_end.
+    const y = Number(today.slice(0, 4))
+    const defaultStart = `${Number(today.slice(5, 7)) >= 8 ? y : y - 1}-08-01`
+    const defaultEnd = (start) => `${Number(start.slice(5, 7)) > 6 ? Number(start.slice(0, 4)) + 1 : Number(start.slice(0, 4))}-06-30`
+    const periodOf = (t) => {
+      const start = t.practice_start || t.season_start || data.practice_start || defaultStart
+      const end = t.practice_end || t.season_end || data.practice_end
+      return { start, end: end && end >= start ? end : defaultEnd(start) }
+    }
+
+    // window shown in the calendar: 2 months back … at least 200 days ahead,
+    // extended to the end of the longest practice period
+    const from = addDays(today.slice(0, 8) + '01', -62)
     let to = addDays(today, 200)
     for (const t of teams) {
-      if (t.season_start && t.season_start < from) from = t.season_start
-      if (t.season_end && t.season_end > to) to = t.season_end
+      const { end } = periodOf(t)
+      if (end > to) to = end
     }
 
     for (const t of teams) {
@@ -120,8 +133,7 @@
         at(day).games.push({ team: t, kind: g.kind, ts: g.starts_at, opponent: g.opponent, where: g.kind === 'home' ? gymName(g.gym_id) : g.venue })
       }
       const cancelled = new Map((t.cancellations || []).map((c) => [`${c.practice_time_id}|${c.date}`, c]))
-      const sStart = t.season_start || from
-      const sEnd = t.season_end || to
+      const { start: sStart, end: sEnd } = periodOf(t)
       for (let day = from; day <= to; day = addDays(day, 1)) {
         if (day < sStart || day > sEnd) continue
         const wd = fromIso(day).getDay()

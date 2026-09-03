@@ -27,7 +27,10 @@ window.BCA_DEMO = function () {
 
   return {
     club_name: 'BC Altstetten',
-    season_start: `${seasonYear}-08-01`,
+    season_start: `${seasonYear}-08-15`,
+    season_end: `${seasonYear + 1}-05-15`,
+    practice_start: `${seasonYear}-08-01`,
+    practice_end: `${seasonYear + 1}-06-30`,
     generated_at: today.toISOString(),
     club_events: [
       { id: 'e-lager', name: 'Clublager', start_date: iso(nextWeekday(5, 5)), end_date: iso(nextWeekday(0, 5)), start_time: '17:00', end_time: '15:00', gym_id: null, place: 'Sportzentrum Tenero', recurrence: 'none' },
@@ -43,7 +46,7 @@ window.BCA_DEMO = function () {
     teams: [
       {
         id: 't1', name: 'Herren 1', category: '2. Liga', home_gym_id: 'g1', color: '#49ad33',
-        season_start: `${seasonYear}-08-01`, season_end: `${seasonYear + 1}-06-30`,
+        practice_start: `${seasonYear}-08-01`, practice_end: `${seasonYear + 1}-06-30`,
         practice_times: [
           { id: 'p1', weekday: 2, start_time: '20:15', end_time: '21:45', gym_id: 'g1', valid_from: null, valid_to: null },
           { id: 'p2', weekday: 4, start_time: '20:00', end_time: '21:30', gym_id: 'g2', valid_from: null, valid_to: null },
@@ -61,7 +64,7 @@ window.BCA_DEMO = function () {
       },
       {
         id: 't2', name: 'Damen 1', category: '1. Liga', home_gym_id: 'g1', color: '#ff4fa3',
-        season_start: `${seasonYear}-08-01`, season_end: `${seasonYear + 1}-06-30`,
+        practice_start: `${seasonYear}-08-01`, practice_end: `${seasonYear + 1}-06-30`,
         practice_times: [
           { id: 'p3', weekday: 1, start_time: '19:00', end_time: '20:30', gym_id: 'g1', valid_from: null, valid_to: null },
           { id: 'p4', weekday: 4, start_time: '18:30', end_time: '20:00', gym_id: 'g2', valid_from: null, valid_to: null },
@@ -75,7 +78,7 @@ window.BCA_DEMO = function () {
       },
       {
         id: 't3', name: 'U16', category: 'Jugend', home_gym_id: 'g2', color: '#7fd0ff',
-        season_start: `${seasonYear}-08-01`, season_end: `${seasonYear + 1}-06-30`,
+        practice_start: `${seasonYear}-08-01`, practice_end: `${seasonYear + 1}-06-30`,
         practice_times: [
           { id: 'p5', weekday: 2, start_time: '18:30', end_time: '20:00', gym_id: 'g1', valid_from: null, valid_to: null },
           { id: 'p6', weekday: 5, start_time: '17:00', end_time: '18:30', gym_id: 'g2', valid_from: null, valid_to: null },
