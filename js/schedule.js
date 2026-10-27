@@ -431,7 +431,8 @@
     $('#legend').innerHTML =
       model.teams.map((t) => `<span><i class="swatch" style="--c:${t.color}"></i>${esc(t.name)}</span>`).join('') +
       `<span><i class="swatch" style="--c:${CLUB_COLOR}"></i>Club-Anlass</span>` +
-      '<span><i class="swatch game"></i>Spiel</span>' +
+      '<span><b class="ha-mini ha-home">H</b>Heimspiel</span>' +
+      '<span><b class="ha-mini ha-away">A</b>Auswärtsspiel</span>' +
       '<span><i class="swatch striped"></i>Halle geschlossen</span>' +
       '<span><s>Training</s> fällt aus</span>'
   }
@@ -447,7 +448,15 @@
       const iso = isoDay(new Date(year, month, d))
       const e = model.byDay.get(iso) || emptyDay()
       const items = [
-        ...e.games.map((g) => ({ ts: fmtTime(g.ts), text: `${fmtTime(g.ts)} 🏀 ${g.team.name} – ${g.opponent}`, color: g.team.color, cls: 'game' })),
+        // H / A badge right after the time, so it survives when the rest of the chip is cut off
+        ...e.games.map((g) => ({
+          ts: fmtTime(g.ts),
+          text: `${g.team.name} – ${g.opponent}`,
+          badge: g.kind === 'home' ? 'H' : 'A',
+          title: `${g.kind === 'home' ? 'Heimspiel' : 'Auswärtsspiel'} · ${fmtTime(g.ts)} ${g.team.name} – ${g.opponent}${g.where ? ` · ${g.where}` : ''}`,
+          color: g.team.color,
+          cls: `game game-${g.kind}`,
+        })),
         ...e.practices.map((p) => ({ ts: p.start, text: `${p.start} ${p.team.name}`, color: p.team.color, cls: p.status === 'ok' ? '' : 'off' })),
         // multi-day events continue with "↳" and sort to the top of the following days
         ...e.events.map((ev) => ({
@@ -460,9 +469,15 @@
       ].sort((a, b) => a.ts.localeCompare(b.ts))
       const max = 4
       const shown = items.length > max ? items.slice(0, max - 1) : items
-      const chips = shown.map((it) => `<span class="ev ${it.cls}" style="--c:${it.color}" title="${esc(it.title || it.text)}">${esc(it.text)}</span>`).join('')
+      const chips = shown
+        .map((it) =>
+          it.badge
+            ? `<span class="ev ${it.cls}" style="--c:${it.color}" title="${esc(it.title)}">${esc(it.ts)} <b class="ha-mini ha-${it.badge === 'H' ? 'home' : 'away'}">${it.badge}</b>${esc(it.text)}</span>`
+            : `<span class="ev ${it.cls}" style="--c:${it.color}" title="${esc(it.title || it.text)}">${esc(it.text)}</span>`,
+        )
+        .join('')
       const more = items.length > max ? `<span class="ev more">+${items.length - shown.length} weitere</span>` : ''
-      const dots = items.map((it) => `<i class="${it.cls}" style="--c:${it.color}"></i>`).join('')
+      const dots = items.map((it) => `<i class="${it.cls}" style="--c:${it.color}">${it.badge || ''}</i>`).join('')
       const cls = ['cal-cell', iso === today ? 'today' : '', iso === selected ? 'selected' : '', e.closures.length ? 'closed' : ''].filter(Boolean).join(' ')
       const title = e.closures.length ? e.closures.map((c) => `${c.gym} geschlossen${c.reason ? ` (${c.reason})` : ''}`).join('\n') : ''
       cells.push(`<div class="${cls}" data-day="${iso}" title="${esc(title)}"><span class="num">${d}</span>${chips}${more}<span class="dots">${dots}</span></div>`)

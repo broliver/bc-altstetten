@@ -196,7 +196,7 @@ details.games .export button:hover { border-color: var(--green); color: var(--gr
 .legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
 .legend .swatch { width: 10px; height: 10px; }
 .legend .swatch.striped { background: repeating-linear-gradient(-45deg, #3a3a3a, #3a3a3a 2px, transparent 2px, transparent 4px); border: 1px solid #444; border-radius: 2px; }
-.legend .swatch.game { background: var(--fg); border-radius: 2px; }
+.legend .ha-mini { font-size: 0.66rem; margin-right: 0; }
 
 .cal { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--bg-2); }
 .cal-head { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--line); }
@@ -253,9 +253,37 @@ details.games .export button:hover { border-color: var(--green); color: var(--gr
 /* events (tournaments, camps, club events): tinted with the owner's colour */
 .ev.event { background: color-mix(in srgb, var(--c, var(--green)) 18%, transparent); }
 .ev.more { border-left-color: transparent; color: var(--muted); background: transparent; }
-.dots { display: none; gap: 3px; flex-wrap: wrap; margin-top: 2px; }
+/* home / away badge of a game: same green / pink as the "Heim" / "Auswärts" tags */
+.ha-mini {
+  display: inline-block;
+  min-width: 1.35em;
+  margin-right: 0.3em;
+  border-radius: 3px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+  color: #000;
+  vertical-align: 0.05em;
+}
+.ha-mini.ha-home { background: var(--green); }
+.ha-mini.ha-away { background: var(--pink); }
+.dots { display: none; gap: 3px; flex-wrap: wrap; align-items: center; margin-top: 2px; }
 .dots i { width: 7px; height: 7px; border-radius: 999px; background: var(--c, var(--green)); display: block; }
 .dots i.game { border-radius: 2px; background: var(--fg); }
+/* phones: games become tiny H / A badges so they don't read as a green / pink team's practice dot */
+.dots i.game-home, .dots i.game-away {
+  width: 11px;
+  height: 11px;
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 11px;
+  text-align: center;
+  color: #000;
+}
+.dots i.game-home { background: var(--green); }
+.dots i.game-away { background: var(--pink); }
 .dots i.off { opacity: 0.35; }
 
 .day-detail { margin-top: 1rem; border: 1px solid var(--line); border-radius: 14px; padding: 1rem 1.2rem; background: var(--bg-2); }
