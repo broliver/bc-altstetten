@@ -427,6 +427,9 @@
 
   const calState = { year: 0, month: 0, selected: today }
 
+  /** "vs. BC Oberwil" for a home game, "@ TV Muttenz" for an away game */
+  const vsOpponent = (g) => `${g.kind === 'home' ? 'vs.' : '@'} ${g.opponent || '?'}`
+
   function renderLegend(model) {
     $('#legend').innerHTML =
       model.teams.map((t) => `<span><i class="swatch" style="--c:${t.color}"></i>${esc(t.name)}</span>`).join('') +
@@ -451,9 +454,9 @@
         // H / A badge right after the time, so it survives when the rest of the chip is cut off
         ...e.games.map((g) => ({
           ts: fmtTime(g.ts),
-          text: `${g.team.name} – ${g.opponent}`,
+          text: `${g.team.name} ${vsOpponent(g)}`,
           badge: g.kind === 'home' ? 'H' : 'A',
-          title: `${g.kind === 'home' ? 'Heimspiel' : 'Auswärtsspiel'} · ${fmtTime(g.ts)} ${g.team.name} – ${g.opponent}${g.where ? ` · ${g.where}` : ''}`,
+          title: `${g.kind === 'home' ? 'Heimspiel' : 'Auswärtsspiel'} · ${fmtTime(g.ts)} ${g.team.name} ${vsOpponent(g)}${g.where ? ` · ${g.where}` : ''}`,
           color: g.team.color,
           cls: `game game-${g.kind}`,
         })),
@@ -535,7 +538,7 @@
         .map(
           (g) => `<li style="--c:${g.team.color}"><span class="swatch"></span><span class="when">${fmtTime(g.ts)}</span>
             <span class="team-name">${esc(g.team.name)}</span><span class="ha ha-${g.kind}">${g.kind === 'home' ? 'Heim' : 'Auswärts'}</span>
-            <span>vs ${esc(g.opponent || '?')}</span>${g.where ? `<span class="where">${esc(g.where)}</span>` : ''}</li>`,
+            <span>${esc(vsOpponent(g))}</span>${g.where ? `<span class="where">${esc(g.where)}</span>` : ''}</li>`,
         )
         .join('')}</ul></div>`)
     if (e.practices.length)
